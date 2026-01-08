@@ -9,31 +9,20 @@ import { Message, Role } from './types';
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const chatServiceRef = useRef<ChatService | null>(null);
 
   // Initialize Chat Service once
   useEffect(() => {
-    try {
-      chatServiceRef.current = new ChatService();
-    } catch (err) {
-      console.error("Failed to initialize ChatService:", err);
-      setError("Failed to connect to the knowledge base. Please check your configuration.");
-    }
+    // ChatService constructor is now safe and won't throw even if API key is missing
+    chatServiceRef.current = new ChatService();
   }, []);
 
   const handleSendMessage = async (text: string) => {
     if (!text.trim()) return;
     
-    // Attempt re-initialization if failed previously
+    // Ensure service is initialized
     if (!chatServiceRef.current) {
-        try {
-            chatServiceRef.current = new ChatService();
-            setError(null);
-        } catch (err) {
-            setError("Service is unavailable. Please try again later.");
-            return;
-        }
+        chatServiceRef.current = new ChatService();
     }
 
     const userMessage: Message = {
@@ -45,7 +34,6 @@ export default function App() {
 
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
-    setError(null);
 
     try {
       // Create a placeholder for the bot response
@@ -82,11 +70,13 @@ export default function App() {
 
     } catch (err) {
       console.error("Error sending message:", err);
-      setError("I'm having trouble connecting to my knowledge base right now. Please try again.");
-      
-      // Remove the empty bot message if it failed completely
-      setMessages(prev => prev.filter(msg => !msg.isStreaming));
-      
+      // Even with mock fallback, if something catastrophic happens:
+      setMessages(prev => prev.map(msg => {
+        if (msg.isStreaming) {
+           return { ...msg, isStreaming: false, content: msg.content + "\n\n[Error: Unable to generate response]" };
+        }
+        return msg;
+      }));
     } finally {
       setIsLoading(false);
     }
@@ -94,12 +84,7 @@ export default function App() {
 
   const handleClearChat = () => {
     setMessages([]);
-    setError(null);
-    try {
-        chatServiceRef.current = new ChatService(); // Reset Gemini session
-    } catch (err) {
-        console.error("Failed to reset chat:", err);
-    }
+    chatServiceRef.current = new ChatService(); // Reset session
   };
 
   return (
@@ -119,12 +104,6 @@ export default function App() {
             <WelcomeScreen onSuggestionClick={handleSendMessage} />
           ) : (
             <MessageList messages={messages} isLoading={isLoading} />
-          )}
-          
-          {error && (
-            <div className="px-4 py-3 bg-red-500/10 border-t border-red-500/20 text-red-200 text-sm text-center message-enter">
-              {error}
-            </div>
           )}
         </main>
 
