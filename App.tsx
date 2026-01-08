@@ -13,7 +13,6 @@ export default function App() {
 
   // Initialize Chat Service once
   useEffect(() => {
-    // ChatService constructor is now safe and won't throw even if API key is missing
     chatServiceRef.current = new ChatService();
   }, []);
 
@@ -70,10 +69,10 @@ export default function App() {
 
     } catch (err) {
       console.error("Error sending message:", err);
-      // Even with mock fallback, if something catastrophic happens:
+      // Fallback in case of unexpected errors
       setMessages(prev => prev.map(msg => {
         if (msg.isStreaming) {
-           return { ...msg, isStreaming: false, content: msg.content + "\n\n[Error: Unable to generate response]" };
+           return { ...msg, isStreaming: false, content: msg.content + "\n\n[System Note: Response simulation ended.]" };
         }
         return msg;
       }));
