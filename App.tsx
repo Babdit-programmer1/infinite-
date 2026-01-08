@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Header } from './components/Header';
 import { MessageList } from './components/MessageList';
 import { InputArea } from './components/InputArea';
@@ -78,6 +78,7 @@ export default function App() {
 
   const handleClearChat = () => {
     setMessages([]);
+    setError(null);
     chatServiceRef.current = new ChatService(); // Reset Gemini session
   };
 
@@ -98,6 +99,12 @@ export default function App() {
             <WelcomeScreen onSuggestionClick={handleSendMessage} />
           ) : (
             <MessageList messages={messages} isLoading={isLoading} />
+          )}
+          
+          {error && (
+            <div className="px-4 py-3 bg-red-500/10 border-t border-red-500/20 text-red-200 text-sm text-center message-enter">
+              {error}
+            </div>
           )}
         </main>
 
