@@ -14,11 +14,27 @@ export default function App() {
 
   // Initialize Chat Service once
   useEffect(() => {
-    chatServiceRef.current = new ChatService();
+    try {
+      chatServiceRef.current = new ChatService();
+    } catch (err) {
+      console.error("Failed to initialize ChatService:", err);
+      setError("Failed to connect to the knowledge base. Please check your configuration.");
+    }
   }, []);
 
   const handleSendMessage = async (text: string) => {
-    if (!text.trim() || !chatServiceRef.current) return;
+    if (!text.trim()) return;
+    
+    // Attempt re-initialization if failed previously
+    if (!chatServiceRef.current) {
+        try {
+            chatServiceRef.current = new ChatService();
+            setError(null);
+        } catch (err) {
+            setError("Service is unavailable. Please try again later.");
+            return;
+        }
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -79,7 +95,11 @@ export default function App() {
   const handleClearChat = () => {
     setMessages([]);
     setError(null);
-    chatServiceRef.current = new ChatService(); // Reset Gemini session
+    try {
+        chatServiceRef.current = new ChatService(); // Reset Gemini session
+    } catch (err) {
+        console.error("Failed to reset chat:", err);
+    }
   };
 
   return (
